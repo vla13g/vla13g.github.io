@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<!-- تم ربط ملف cache.appcache لعمل الموقع بدون إنترنت -->
 <html lang="ar" dir="rtl" id="htmlTag" manifest="cache.appcache">
 <head>
     <meta charset="UTF-8">
@@ -7,7 +6,6 @@
     <title>تعديل PS4 - 13.52</title>
     <style>
         body {
-            /* يمكنك تغيير 91353.png إلى logo_raw.png إذا أردت استخدام الشعار الجديد الموجود في ملفاتك */
             background-image: url('91353.png');
             background-size: cover;
             background-position: center;
@@ -56,6 +54,25 @@
             cursor: pointer; font-weight: bold; width: 100%;
         }
         .modal-content button:hover { background: #008cba; color: white; }
+
+        /* خانة إصدار النظام */
+        .fw-version {
+            position: absolute;
+            top: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 8px 15px;
+            border-radius: 10px;
+            border: 1px solid #00bfff;
+            font-size: 16px;
+            font-weight: bold;
+            backdrop-filter: blur(5px);
+            z-index: 10;
+        }
+        .fw-num {
+            color: #00bfff;
+            margin: 0 5px;
+            font-family: 'Courier New', Courier, monospace;
+        }
 
         /* النصوص العلوية */
         .header-title {
@@ -204,6 +221,12 @@
         </div>
     </div>
 
+    <!-- خانة عرض إصدار النظام -->
+    <div class="fw-version" id="fwBox">
+        <span id="fwLabel">إصدار النظام:</span>
+        <span id="fwNumber" class="fw-num"></span>
+    </div>
+
     <div class="header-title">Vladimir Putin</div>
     <div class="version-badge" id="versionText">هذا الرابط يدعم الإصدار 13.52 فما دون</div>
 
@@ -227,7 +250,6 @@
         </svg>
     </a>
 
-    <!-- تم تحديث ملفات التعديل لتطابق مجلدك الجديد -->
     <script src="int64.js"></script>
     <script src="ps4_offsets.js"></script>
     <script src="core.js"></script>
@@ -247,6 +269,8 @@
                 noteText: "يجب مسح جميع الصفحات في المتصفح (Webkit)، وإعادة كتابة الرابط، ومن ثم تفعيل الجيلبريك.",
                 jbBtn: "تفعيل الجيلبريك",
                 twitter: "تويتر",
+                fwLabel: "إصدار النظام:",
+                unknown: "مجهول",
                 dir: "rtl"
             },
             en: {
@@ -259,6 +283,8 @@
                 noteText: "You must clear all browser pages (Webkit), rewrite the link, and then activate the jailbreak.",
                 jbBtn: "START JAILBREAK",
                 twitter: "Twitter",
+                fwLabel: "Firmware:",
+                unknown: "Unknown",
                 dir: "ltr"
             },
             pt: {
@@ -271,6 +297,8 @@
                 noteText: "Você deve limpar todas as páginas do navegador (Webkit), reescrever o link e então ativar o jailbreak.",
                 jbBtn: "ATIVAR JAILBREAK",
                 twitter: "Twitter",
+                fwLabel: "Firmware:",
+                unknown: "Desconhecido",
                 dir: "ltr"
             },
             ru: {
@@ -283,6 +311,8 @@
                 noteText: "Вы должны очистить все страницы браузера (Webkit), переписать ссылку, а затем активировать взлом.",
                 jbBtn: "ЗАПУСК ВЗЛОМА",
                 twitter: "Twitter",
+                fwLabel: "Прошивка:",
+                unknown: "Неизвестно",
                 dir: "ltr"
             }
         };
@@ -290,11 +320,23 @@
         let currentLang = 'ar';
         let is24Hour = false;
         let isJailbroken = false;
+        let fwDetected = "";
         
         const powerBtn = document.getElementById('powerBtn');
         const statusText = document.getElementById('status');
 
+        // كود الكشف عن رقم الإصدار
+        function detectPS4Firmware() {
+            let ua = navigator.userAgent;
+            let match = ua.match(/PlayStation 4[\/\s]?([0-9\.]+)/i);
+            return match ? match[1] : null;
+        }
+
         window.onload = function() {
+            // جلب الإصدار عند تحميل الصفحة
+            let fw = detectPS4Firmware();
+            fwDetected = fw ? fw : "UNKNOWN";
+
             if (!localStorage.getItem('setupDone')) {
                 document.getElementById('setupModal').style.display = 'flex';
             } else {
@@ -328,13 +370,24 @@
             document.getElementById('noteText').innerText = t.noteText;
             document.getElementById('twitterText').innerText = t.twitter;
             
+            // تطبيق نصوص إصدار النظام
+            document.getElementById('fwLabel').innerText = t.fwLabel;
+            document.getElementById('fwNumber').innerText = (fwDetected === "UNKNOWN") ? t.unknown : fwDetected;
+            
+            // تعديل مكان خانة الإصدار والملاحظة بناءً على اتجاه اللغة
             const noteBox = document.getElementById('noteBox');
+            const fwBox = document.getElementById('fwBox');
+            
             if(t.dir === 'rtl') {
                 noteBox.style.borderRight = '4px solid #ffc107';
                 noteBox.style.borderLeft = 'none';
+                fwBox.style.right = '20px';
+                fwBox.style.left = 'auto';
             } else {
                 noteBox.style.borderLeft = '4px solid #ffc107';
                 noteBox.style.borderRight = 'none';
+                fwBox.style.left = '20px';
+                fwBox.style.right = 'auto';
             }
             
             if (!isJailbroken) {
@@ -354,8 +407,6 @@
             powerBtn.innerText = "WAIT...";
             
             try {
-                // إذا كانت حزمتك تتطلب الانتقال إلى صفحة jb.html للتفعيل الفعلي،
-                // سيتم تحويلك برمجياً بعد ثانية ونصف، وإلا سيستمر السكريبت بالعمل هنا.
                 setTimeout(() => {
                     if (typeof runJailbreak === 'function') {
                         successJailbreak(); 
